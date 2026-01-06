@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kuis Profesi Arab - Interaktif</title>
+    <title>Kuis Profesi Arab</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Amiri&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
     <style>
@@ -29,8 +29,6 @@
             display: flex; align-items: center; justify-content: center;
             border: 2px solid #e5e7eb; font-size: 20px;
         }
-
-        /* Sembunyikan tombol lanjut secara default */
         #next-btn { display: none; }
     </style>
 </head>
@@ -41,24 +39,21 @@
 <div id="start-screen" class="fixed inset-0 bg-blue-600 z-[200] flex flex-col items-center justify-center p-6 text-center">
     <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
         <h1 class="text-3xl font-black text-blue-600 mb-2">MARI BELAJAR!</h1>
-        <p class="text-gray-500 mb-6 font-bold">Masukkan namamu untuk memulai kuis</p>
+        <p class="text-gray-500 mb-6 font-bold text-sm">Suara akan aktif otomatis setelah klik mulai</p>
         <input type="text" id="user-name" placeholder="Ketik namamu..." 
             class="w-full p-4 border-4 border-gray-100 rounded-2xl mb-6 text-center text-xl font-bold focus:border-blue-400 outline-none">
-        <div id="last-session" class="text-sm text-blue-500 mb-4 hidden font-bold"></div>
-        <button onclick="startGame()" class="w-full bg-green-500 text-white text-xl py-4 rounded-2xl font-black shadow-[0_6px_0_0_#15803d] hover:bg-green-400 active:translate-y-1 active:shadow-none transition-all">MULAI KUIS</button>
+        <button onclick="startGame()" class="w-full bg-green-500 text-white text-xl py-4 rounded-2xl font-black shadow-[0_6px_0_0_#15803d]">MULAI KUIS</button>
     </div>
 </div>
 
 <div id="game-container" class="max-w-xl mx-auto p-4 mt-4 hidden">
     <div class="flex justify-between items-center mb-4 px-2">
         <span id="score-text" class="font-black text-blue-600">Soal: 1/20</span>
-        <h1 id="display-player-name" class="text-sm font-black uppercase text-gray-400">Pemain</h1>
+        <h1 id="display-player-name" class="text-sm font-black uppercase text-gray-400 font-bold">Pemain</h1>
     </div>
-    
     <div class="w-full bg-gray-200 rounded-full h-3 mb-6">
         <div id="progress-bar" class="bg-green-500 h-3 rounded-full transition-all duration-500" style="width: 5%"></div>
     </div>
-
     <div id="area-soal" class="mb-6 flex justify-center h-48 items-center"></div>
     <div id="grid-pilihan" class="grid grid-cols-2 gap-4"></div>
 </div>
@@ -70,10 +65,9 @@
 
 <div id="result-screen" class="hidden fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center p-6 text-center">
     <h2 class="text-xl font-black text-gray-400 uppercase">Skor Akhir</h2>
-    <h3 id="final-name" class="text-4xl font-black text-black mb-4 uppercase">Nama</h3>
+    <h3 id="final-name" class="text-4xl font-black text-black mb-4"></h3>
     <div id="final-score" class="text-9xl font-black text-blue-600 mb-4">0</div>
-    <p id="result-msg" class="text-xl text-gray-600 mb-8 font-bold"></p>
-    <button onclick="location.reload()" class="bg-blue-600 text-white text-xl px-12 py-4 rounded-2xl font-black shadow-[0_6px_0_0_#1d4ed8] hover:bg-blue-500 active:translate-y-1 active:shadow-none transition-all">MAIN LAGI</button>
+    <button onclick="location.reload()" class="bg-blue-600 text-white text-xl px-12 py-4 rounded-2xl font-black shadow-[0_6px_0_0_#1d4ed8]">MAIN LAGI</button>
 </div>
 
 <script>
@@ -124,13 +118,11 @@
     };
 
     const bgm = new Audio("https://www.bensound.com/bensound-music/bensound-buddy.mp3");
-    bgm.loop = true;
-    bgm.volume = 0.05;
+    bgm.loop = true; bgm.volume = 0.05;
 
     const sfxBenar = new Audio("https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3");
     const sfxSalah = new Audio("https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3");
 
-    let synth = window.speechSynthesis;
     let musicEnabled = true;
     let index = 0;
     let skorBenar = 0;
@@ -138,16 +130,27 @@
     let dikunci = false;
     let daftarSoalAcak = [];
 
-    window.onload = () => {
-        const saved = localStorage.getItem('progresPemain');
-        if(saved) {
-            const data = JSON.parse(saved);
-            document.getElementById('user-name').value = data.nama;
-            const ls = document.getElementById('last-session');
-            ls.innerText = `Skor Terakhir: ${data.skor}%`;
-            ls.classList.remove('hidden');
-        }
-    };
+    // FUNGSI SUARA BARU: PAKAI MP3 BIAR JALAN DI SEMUA HP
+    function speak(teks, showNext = false) {
+        if(!teks) return;
+        
+        // Ducking music
+        if(musicEnabled) bgm.volume = 0.01;
+        
+        // Link Google Translate TTS (Bahasa Arab)
+        const url = "https://translate.google.com/translate_tts?ie=UTF-8&q=" + encodeURIComponent(teks) + "&tl=ar&client=tw-ob";
+        const audio = new Audio(url);
+        
+        audio.onended = () => {
+            if(musicEnabled) bgm.volume = 0.05;
+            if(showNext) document.getElementById('next-btn').style.display = "block";
+        };
+
+        audio.play().catch(e => {
+            // Jika audio tetap diblok browser, paksa munculkan tombol saja agar tidak stuck
+            if(showNext) document.getElementById('next-btn').style.display = "block";
+        });
+    }
 
     function toggleMusic(e) {
         if(e) e.stopPropagation();
@@ -156,37 +159,12 @@
         else { bgm.pause(); document.getElementById('music-control').innerText = "🔇"; }
     }
 
-    function duckMusic(duration = 2000) {
-        if(!musicEnabled) return;
-        bgm.volume = 0.01;
-        setTimeout(() => { if(musicEnabled) bgm.volume = 0.05; }, duration);
-    }
-
-    function speak(t, showNext = false) {
-        if(!t) return;
-        duckMusic(2500);
-        synth.cancel();
-        const u = new SpeechSynthesisUtterance(t);
-        u.lang = 'ar-SA'; u.rate = 0.7;
-        
-        // Munculkan tombol lanjut HANYA setelah suara selesai
-        if(showNext) {
-            u.onend = () => {
-                document.getElementById('next-btn').style.display = "block";
-            };
-        }
-
-        synth.speak(u);
-    }
-
     function startGame() {
         const input = document.getElementById('user-name').value;
-        if(input.trim() === "") return alert("Masukkan namamu dulu!");
-        
+        if(input.trim() === "") return alert("Isi namamu!");
         playerName = input;
-        speak(" "); 
+        
         if(musicEnabled) bgm.play();
-
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('game-container').classList.remove('hidden');
         
@@ -196,7 +174,6 @@
 
     function loadSoal() {
         if (index >= 20) return tampilkanHasil();
-        
         dikunci = false;
         const soal = daftarSoalAcak[index];
         const mode = index % 2;
@@ -205,16 +182,16 @@
         document.getElementById('display-player-name').innerText = playerName;
         document.getElementById('progress-bar').style.width = `${((index + 1) / 20) * 100}%`;
         document.getElementById('footer').classList.add('translate-y-full');
-        document.getElementById('next-btn').style.display = "none"; // Sembunyikan saat soal baru
+        document.getElementById('next-btn').style.display = "none";
         document.getElementById('grid-pilihan').innerHTML = '';
 
         if(mode === 0) {
             document.getElementById('area-soal').innerHTML = `<img src="${daftarGambar[soal.key]}" class="w-48 h-48 object-cover rounded-3xl shadow-lg border-4 border-white">`;
             renderPilihan(soal, 'text');
         } else {
-            document.getElementById('area-soal').innerHTML = `<button onclick="speak('${soal.ar}')" class="bg-blue-500 w-32 h-32 rounded-full text-white shadow-lg text-5xl flex items-center justify-center hover:scale-105 transition-all">🔊</button>`;
+            document.getElementById('area-soal').innerHTML = `<button onclick="speak('${soal.ar}')" class="bg-blue-500 w-32 h-32 rounded-full text-white shadow-lg text-5xl flex items-center justify-center">🔊</button>`;
             renderPilihan(soal, 'img');
-            setTimeout(() => { if(!dikunci) speak(soal.ar); }, 1000); 
+            setTimeout(() => { if(!dikunci) speak(soal.ar); }, 800); 
         }
     }
 
@@ -226,8 +203,7 @@
         opsi.forEach(o => {
             const box = document.createElement('div');
             box.className = "option-box";
-            let content = (type === 'text') ? `<span class="text-3xl font-arab font-bold" dir="rtl">${o.ar}</span>` : `<img src="${daftarGambar[o.key]}" class="w-full h-full object-cover">`;
-            box.innerHTML = content;
+            box.innerHTML = (type === 'text') ? `<span class="text-3xl font-arab font-bold" dir="rtl">${o.ar}</span>` : `<img src="${daftarGambar[o.key]}" class="w-full h-full object-cover">`;
             
             box.onclick = () => {
                 if(dikunci) return; dikunci = true;
@@ -238,41 +214,28 @@
                     skorBenar++;
                     box.classList.add('correct');
                     sfxBenar.play();
-                    document.getElementById('info').innerHTML = "<span class='text-green-600 font-black'>Mumtaz! (Benar)</span>";
+                    document.getElementById('info').innerHTML = "<span class='text-green-600 font-black'>MUMTAZ! (BENAR)</span>";
                     f.style.background = "#f0fff4";
-                    
-                    // Putar suara kosakata, lalu tampilkan tombol lanjut setelah selesai
-                    sfxBenar.onended = () => { speak(soal.ar, true); };
+                    sfxBenar.onended = () => speak(soal.ar, true);
                 } else {
                     box.classList.add('wrong');
                     sfxSalah.play();
                     document.getElementById('info').innerHTML = `<span class='text-red-600 font-arab text-2xl'>${soal.ar}</span>`;
                     f.style.background = "#fff5f5";
-                    
-                    // Tetap tampilkan jawaban yang benar lewat suara, baru muncul tombol lanjut
-                    sfxSalah.onended = () => { speak(soal.ar, true); };
+                    sfxSalah.onended = () => speak(soal.ar, true);
                 }
             };
             document.getElementById('grid-pilihan').appendChild(box);
         });
     }
 
-    document.getElementById('next-btn').onclick = () => {
-        index++;
-        loadSoal();
-    };
+    document.getElementById('next-btn').onclick = () => { index++; loadSoal(); };
 
     function tampilkanHasil() {
         const totalNilai = (skorBenar / 20) * 100;
-        localStorage.setItem('progresPemain', JSON.stringify({
-            nama: playerName,
-            skor: totalNilai
-        }));
         document.getElementById('final-name').innerText = playerName;
         document.getElementById('final-score').innerText = totalNilai;
         document.getElementById('result-screen').classList.remove('hidden');
-        let msg = totalNilai >= 70 ? "Keren! Pertahankan!" : "Ayo belajar lagi!";
-        document.getElementById('result-msg').innerText = msg;
     }
 </script>
 </body>

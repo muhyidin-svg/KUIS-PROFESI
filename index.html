@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kuis Profesi Arab - Duolingo Style</title>
+    <title>Kuis Profesi Arab - Interaktif</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Amiri&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
     <style>
@@ -29,6 +29,9 @@
             display: flex; align-items: center; justify-content: center;
             border: 2px solid #e5e7eb; font-size: 20px;
         }
+
+        /* Sembunyikan tombol lanjut secara default */
+        #next-btn { display: none; }
     </style>
 </head>
 <body>
@@ -74,7 +77,6 @@
 </div>
 
 <script>
-    // DATA PROFESI (Lengkap 20)
     const profesi = [
         { ar: "طَبِيْبٌ", idn: "Dokter", key: "dokter" },
         { ar: "مُدَرِّسٌ", idn: "Guru", key: "guru" },
@@ -121,7 +123,6 @@
         tukang_kebun: "https://images.pexels.com/photos/1105019/pexels-photo-1105019.jpeg"
     };
 
-    // AUDIO SETUP
     const bgm = new Audio("https://www.bensound.com/bensound-music/bensound-buddy.mp3");
     bgm.loop = true;
     bgm.volume = 0.05;
@@ -137,7 +138,6 @@
     let dikunci = false;
     let daftarSoalAcak = [];
 
-    // CEK PROGRESS LAMA
     window.onload = () => {
         const saved = localStorage.getItem('progresPemain');
         if(saved) {
@@ -162,12 +162,20 @@
         setTimeout(() => { if(musicEnabled) bgm.volume = 0.05; }, duration);
     }
 
-    function speak(t) {
+    function speak(t, showNext = false) {
         if(!t) return;
         duckMusic(2500);
         synth.cancel();
         const u = new SpeechSynthesisUtterance(t);
         u.lang = 'ar-SA'; u.rate = 0.7;
+        
+        // Munculkan tombol lanjut HANYA setelah suara selesai
+        if(showNext) {
+            u.onend = () => {
+                document.getElementById('next-btn').style.display = "block";
+            };
+        }
+
         synth.speak(u);
     }
 
@@ -176,7 +184,7 @@
         if(input.trim() === "") return alert("Masukkan namamu dulu!");
         
         playerName = input;
-        speak(" "); // Pemicu suara HP
+        speak(" "); 
         if(musicEnabled) bgm.play();
 
         document.getElementById('start-screen').classList.add('hidden');
@@ -197,6 +205,7 @@
         document.getElementById('display-player-name').innerText = playerName;
         document.getElementById('progress-bar').style.width = `${((index + 1) / 20) * 100}%`;
         document.getElementById('footer').classList.add('translate-y-full');
+        document.getElementById('next-btn').style.display = "none"; // Sembunyikan saat soal baru
         document.getElementById('grid-pilihan').innerHTML = '';
 
         if(mode === 0) {
@@ -229,15 +238,19 @@
                     skorBenar++;
                     box.classList.add('correct');
                     sfxBenar.play();
-                    document.getElementById('info').innerHTML = "<span class='text-green-600'>Mumtaz! (Benar)</span>";
+                    document.getElementById('info').innerHTML = "<span class='text-green-600 font-black'>Mumtaz! (Benar)</span>";
                     f.style.background = "#f0fff4";
-                    sfxBenar.onended = () => { speak(soal.ar); };
+                    
+                    // Putar suara kosakata, lalu tampilkan tombol lanjut setelah selesai
+                    sfxBenar.onended = () => { speak(soal.ar, true); };
                 } else {
                     box.classList.add('wrong');
                     sfxSalah.play();
-                    document.getElementById('info').innerHTML = "<span class='text-red-600 font-arab text-2xl'>${soal.ar}</span>";
+                    document.getElementById('info').innerHTML = `<span class='text-red-600 font-arab text-2xl'>${soal.ar}</span>`;
                     f.style.background = "#fff5f5";
-                    sfxSalah.onended = () => { speak(soal.ar); };
+                    
+                    // Tetap tampilkan jawaban yang benar lewat suara, baru muncul tombol lanjut
+                    sfxSalah.onended = () => { speak(soal.ar, true); };
                 }
             };
             document.getElementById('grid-pilihan').appendChild(box);
@@ -251,17 +264,13 @@
 
     function tampilkanHasil() {
         const totalNilai = (skorBenar / 20) * 100;
-        
-        // Simpan Progress ke LocalStorage
         localStorage.setItem('progresPemain', JSON.stringify({
             nama: playerName,
             skor: totalNilai
         }));
-
         document.getElementById('final-name').innerText = playerName;
         document.getElementById('final-score').innerText = totalNilai;
         document.getElementById('result-screen').classList.remove('hidden');
-        
         let msg = totalNilai >= 70 ? "Keren! Pertahankan!" : "Ayo belajar lagi!";
         document.getElementById('result-msg').innerText = msg;
     }
